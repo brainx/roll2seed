@@ -1,0 +1,24 @@
+{
+  "name": "roll2seed",
+  "version": "0.1.0",
+  "description": "Local-first dice entropy tool for generating and verifying BIP39 mnemonics.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "start": "node scripts/serve.mjs",
+    "test:watch": "vitest",
+    "serve": "node scripts/serve.mjs",
+    "check": "npm run test && npm run build"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  }
+}

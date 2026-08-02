@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Turn physical six-sided dice rolls into an unbiased BIP39 recovery phrase without storage, analytics, or runtime network access."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Roll2Seed — Physical dice to BIP39</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to entropy controls</a>
+
+    <header class="app-header">
+      <a class="brand" href="#main-content" aria-label="Roll2Seed home">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 3 42 13.4v21.2L24 45 6 34.6V13.4L24 3Z" />
+          <path d="m6 13.4 18 10.4 18-10.4M24 23.8V45" />
+          <circle cx="17" cy="12.3" r="1.3" />
+          <circle cx="30.8" cy="14.2" r="1.3" />
+          <circle cx="13.2" cy="25.2" r="1.3" />
+          <circle cx="18.2" cy="32.2" r="1.3" />
+          <circle cx="34.7" cy="24.3" r="1.3" />
+          <circle cx="29.7" cy="31.2" r="1.3" />
+          <circle cx="34.7" cy="35.1" r="1.3" />
+        </svg>
+        <span>Roll2Seed</span>
+      </a>
+
+      <div class="local-status" id="local-status" aria-live="polite">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="11" rx="2" />
+          <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" />
+        </svg>
+        <span>Local only · No runtime network</span>
+      </div>
+    </header>
+
+    <noscript>
+      <div class="fatal-banner">
+        Roll2Seed needs JavaScript to process rolls locally. No recovery phrase was generated.
+      </div>
+    </noscript>
+
+    <main id="main-content">
+      <section class="hero" aria-labelledby="page-title">
+        <h1 id="page-title">Roll your own bitcoin entropy.</h1>
+        <p>Use a fair physical six-sided die. Every roll stays on this device.</p>
+      </section>
+
+      <section class="fatal-banner" id="fatal-error" hidden tabindex="-1">
+        <strong>Generation is unavailable.</strong>
+        <span id="fatal-error-message"></span>
+        <span>No recovery phrase was generated.</span>
+      </section>
+
+      <div class="workspace" id="workspace">
+        <section class="tool-column" aria-label="Dice entropy controls">
+          <div class="step-block phrase-length-block">
+            <div class="step-heading-row">
+              <h2><span>1.</span> Choose phrase length</h2>
+              <span class="control-note" id="length-lock-note">Locks after the first roll</span>
+            </div>
+            <div class="phrase-options" role="radiogroup" aria-label="BIP39 phrase length">
+              <button class="phrase-option" type="button" role="radio" aria-checked="false" data-words="12">
+                <strong>12</strong><span>words</span>
+              </button>
+              <button class="phrase-option" type="button" role="radio" aria-checked="false" data-words="15">
+                <strong>15</strong><span>words</span>
+              </button>
+              <button class="phrase-option" type="button" role="radio" aria-checked="false" data-words="18">
+                <strong>18</strong><span>words</span>
+              </button>
+              <button class="phrase-option" type="button" role="radio" aria-checked="false" data-words="21">
+                <strong>21</strong><span>words</span>
+              </button>
+              <button class="phrase-option is-selected" type="button" role="radio" aria-checked="true" data-words="24">
+                <strong>24</strong><span>words</span>
+              </button>
+            </div>
+            <p class="field-help" id="length-help">
+              24 words uses 256 bits. Confirm your intended wallet accepts this phrase length before funding it.
+            </p>
+          </div>
+
+          <div class="rule" aria-hidden="true"></div>
+
+          <div class="step-block roll-block">
+            <div class="step-heading-row roll-heading-row">
+              <div>
+                <h2><span>2.</span> Enter each roll</h2>
+                <p class="keyboard-hint">Press 1–6 after each physical roll</p>
+              </div>
+              <button class="button button-secondary button-small" id="undo-button" type="button" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m9 8-5 4 5 4" />
+                  <path d="M5 12h9a5 5 0 0 1 5 5v1" />
+                </svg>
+                Undo
+              </button>
+            </div>
+
+            <div class="input-lock" id="input-lock" role="status">
+              Complete the three safety checks to unlock roll entry.
+            </div>
+            <p class="visually-hidden" id="roll-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+
+            <div class="roll-pad" id="roll-pad" aria-label="Record a physical die roll">
+              <button class="die-button" type="button" data-face="1" aria-label="Record die roll 1" disabled>1</button>
+              <button class="die-button" type="button" data-face="2" aria-label="Record die roll 2" disabled>2</button>
+              <button class="die-button" type="button" data-face="3" aria-label="Record die roll 3" disabled>3</button>
+              <button class="die-button" type="button" data-face="4" aria-label="Record die roll 4" disabled>4</button>
+              <button class="die-button" type="button" data-face="5" aria-label="Record die roll 5" disabled>5</button>
+              <button class="die-button" type="button" data-face="6" aria-label="Record die roll 6" disabled>6</button>
+            </div>
+
+            <div class="progress-region">
+              <div class="progress-labels">
+                <span>Minimum roll progress</span>
+                <strong id="progress-copy">0 of 100 minimum rolls</strong>
+              </div>
+              <progress
+                class="progress-track"
+                id="progress-track"
+                aria-label="Minimum physical dice rolls"
+                max="100"
+                value="0"
+              ></progress>
+              <div class="progress-ticks" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div class="progress-scale" aria-hidden="true">
+                <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
+              </div>
+            </div>
+
+            <div class="roll-ledger" id="roll-ledger">
+              <div class="ledger-header">
+                <div>
+                  <strong>Roll ledger</strong>
+                  <span>most recent last</span>
+                </div>
+                <div class="ledger-actions">
+                  <button class="text-action" id="review-rolls-button" type="button" disabled>
+                    Review all
+                  </button>
+                  <button class="text-action danger-action" id="clear-rolls-button" type="button" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+                    </svg>
+                    Clear rolls
+                  </button>
+                </div>
+              </div>
+              <div class="ledger-empty" id="ledger-empty">
+                No rolls recorded. Repeated values are normal—record exactly what the physical die shows.
+              </div>
+              <ol class="roll-list" id="roll-list" aria-label="Recorded physical dice rolls"></ol>
+            </div>
+
+            <p class="memory-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 4.5 6v5c0 4.7 3.2 8.5 7.5 10 4.3-1.5 7.5-5.3 7.5-10V6L12 3Z" />
+                <path d="m8.7 12 2.1 2.1 4.5-4.7" />
+              </svg>
+              Rolls live in this tab’s memory only—never in storage, a URL, analytics, or the clipboard. The complete sequence is as secret as the phrase. Leaving or refreshing clears it; a browser warning is requested but cannot be guaranteed.
+            </p>
+          </div>
+        </section>
+
+        <aside class="safety-panel" aria-labelledby="safety-title">
+          <h2 id="safety-title">Before you begin</h2>
+          <div class="network-warning" id="network-warning" role="status">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 2.8 19h18.4L12 3Z" />
+              <path d="M12 9v4M12 16.5v.1" />
+            </svg>
+            <span id="network-warning-copy">Network appears available. Disconnect before entering rolls.</span>
+          </div>
+
+          <fieldset class="safety-checks">
+            <legend>Confirm all three</legend>
+            <label class="safety-check">
+              <input type="checkbox" data-safety-check="die" />
+              <span class="check-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                  <path d="M24 5 40 14v19L24 43 8 33V14L24 5Z" />
+                  <circle cx="18" cy="15" r="1.5" /><circle cx="30" cy="17" r="1.5" />
+                  <circle cx="17" cy="29" r="1.5" /><circle cx="31" cy="31" r="1.5" />
+                </svg>
+              </span>
+              <span><strong>Use a fair physical die</strong><small>Never a dice app or chosen numbers.</small></span>
+            </label>
+            <label class="safety-check">
+              <input type="checkbox" data-safety-check="surface" />
+              <span class="check-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                  <path d="M8 34h32M12 34v-7l7-11h10l7 11v7M14 27h20" />
+                </svg>
+              </span>
+              <span><strong>Roll naturally on a level surface</strong><small>Do not reroll “odd-looking” sequences.</small></span>
+            </label>
+            <label class="safety-check">
+              <input type="checkbox" data-safety-check="privacy" />
+              <span class="check-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                  <rect x="9" y="13" width="30" height="23" rx="3" />
+                  <circle cx="24" cy="24.5" r="5" /><path d="m8 7 32 34" />
+                </svg>
+              </span>
+              <span><strong>Keep cameras and sharing away</strong><small>Disable screen recording and cloud tools.</small></span>
+            </label>
+          </fieldset>
+
+          <div class="self-checks" id="self-checks" aria-live="polite">
+            <div><span class="status-dot" id="wordlist-dot"></span><span>BIP39 wordlist integrity</span><strong id="wordlist-status">checking</strong></div>
+            <div><span class="status-dot" id="sampler-dot"></span><span>Sampler &amp; checksum self-test</span><strong id="sampler-status">checking</strong></div>
+          </div>
+
+          <button class="education-link" id="why-extra-button" type="button">
+            Why extra rolls may be needed
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+          </button>
+        </aside>
+      </div>
+
+      <section class="result-panel" id="result-panel" aria-labelledby="result-title">
+        <div class="result-state" id="result-locked">
+          <div>
+            <h2 id="result-title"><span>3.</span> Reveal recovery phrase</h2>
+            <p id="locked-result-copy">Locked until at least 100 physical rolls are recorded for 24 words.</p>
+          </div>
+          <button class="button button-disabled" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" /></svg>
+            Keep rolling
+          </button>
+        </div>
+
+        <div class="result-state result-ready" id="result-ready" hidden>
+          <div class="ready-copy">
+            <p class="success-label"><span></span> Uniform sample accepted</p>
+            <h2>Your entropy is ready.</h2>
+            <p>The checksum catches some transcription mistakes. It does not add secret entropy.</p>
+          </div>
+          <dl class="entropy-summary">
+            <div><dt>Physical rolls</dt><dd id="summary-rolls">100</dd></div>
+            <div><dt>Entropy</dt><dd id="summary-bits">256 unbiased bits</dd></div>
+            <div><dt>Format</dt><dd id="summary-format">24-word BIP39 English</dd></div>
+          </dl>
+          <label class="reveal-check">
+            <input type="checkbox" id="reveal-check" />
+            <span>I am private, cameras, screenshots, photos, and screen sharing are off, and I am ready to write the phrase by hand.</span>
+          </label>
+          <button class="button button-primary" id="reveal-button" type="button" disabled>
+            Reveal recovery phrase
+          </button>
+        </div>
+
+        <div class="result-state secret-state" id="result-secret" hidden>
+          <div class="secret-warning" role="alert">
+            <strong>Treat these words like the bitcoin itself.</strong>
+            <span>Anyone who gets them may be able to spend the funds.</span>
+          </div>
+          <div class="secret-heading-row">
+            <div>
+              <h2>Your recovery phrase</h2>
+              <p>Write each numbered word by hand, in order.</p>
+            </div>
+            <div class="hide-controls">
+              <div class="hide-timer" id="hide-timer">Hides in 2:00</div>
+              <button class="timer-action" id="keep-visible-button" type="button">Keep visible 2 min</button>
+            </div>
+          </div>
+          <ol class="mnemonic-list secret-content" id="mnemonic-list" aria-label="BIP39 recovery phrase"></ol>
+          <div class="no-copy-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8h9v11H9zM6 15H5V5h9v1" /><path d="m4 3 17 18" /></svg>
+            Do not screenshot or photograph these words. No copy, download, print, share, or QR controls—clipboard history and cloud photo sync can retain secrets.
+          </div>
+          <div class="secret-actions">
+            <button class="button button-primary" id="verify-backup-button" type="button">Verify my paper backup</button>
+            <button class="button button-secondary" id="hide-phrase-button" type="button">Hide phrase</button>
+            <button class="text-action danger-action" id="erase-secret-button" type="button">Erase session</button>
+          </div>
+        </div>
+
+        <div class="result-state hidden-state" id="result-hidden" hidden>
+          <div>
+            <p class="success-label muted-label"><span></span> Phrase hidden</p>
+            <h2>Your recovery phrase is concealed.</h2>
+            <p id="hidden-reason">The words remain only in this tab’s active memory until you erase the session.</p>
+          </div>
+          <div class="hidden-actions">
+            <button class="button button-secondary" id="show-phrase-button" type="button">Reveal again</button>
+            <button class="button button-primary" id="verify-hidden-button" type="button">Verify paper backup</button>
+            <button class="text-action danger-action" id="erase-hidden-button" type="button">Erase session</button>
+          </div>
+        </div>
+
+        <div class="result-state verification-state" id="result-verification" hidden>
+          <div class="verification-heading">
+            <p class="success-label muted-label"><span></span> Phrase hidden during check</p>
+            <h2>Check your paper backup.</h2>
+            <p>Enter the requested words from paper. This spot-check never reveals an expected word.</p>
+          </div>
+          <form id="verification-form" autocomplete="off" novalidate>
+            <div class="verification-fields" id="verification-fields"></div>
+            <p class="paste-warning" id="paste-warning" hidden>
+              Paste detected. For a trustworthy check, enter the words from your handwritten backup.
+            </p>
+            <p class="form-feedback" id="verification-feedback" role="status"></p>
+            <div class="verification-actions">
+              <button class="button button-primary" type="submit">Check six words</button>
+              <button class="button button-secondary" id="cancel-verification-button" type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="result-state verified-state" id="result-verified" hidden>
+          <div>
+            <p class="success-label"><span></span> Six-position spot-check passed</p>
+            <h2>Your paper backup matched.</h2>
+            <p>This is not a complete wallet recovery test. Test restoration in the intended wallet before receiving funds.</p>
+          </div>
+          <div class="verified-actions">
+            <button class="button button-primary" id="finish-button" type="button">Finish and erase session</button>
+            <button class="button button-secondary" id="compare-button" type="button">Reveal and compare all words</button>
+          </div>
+        </div>
+
+        <div class="result-state cleared-state" id="result-cleared" hidden>
+          <div>
+            <p class="success-label"><span></span> Session cleared</p>
+            <h2>Active roll and phrase state was released.</h2>
+            <p>JavaScript cannot promise forensic memory erasure. The app never used storage or the clipboard. Destroy the complete paper roll tally after your recovery phrase is safely backed up—it can recreate the phrase.</p>
+          </div>
+          <button class="button button-primary" id="new-session-button" type="button">Start a new session</button>
+        </div>
+      </section>
+
+      <section class="education" id="education" aria-labelledby="education-title">
+        <div class="education-intro">
+          <h2 id="education-title">Know what the tool proves—and what it cannot.</h2>
+          <p>Unbiased math, safe display, accurate backup, and successful wallet recovery are four separate checks.</p>
+        </div>
+        <div class="education-details">
+          <details id="bias-details">
+            <summary>How bias is removed</summary>
+            <p>
+              Six-sided dice ranges do not always divide evenly into a power of two. Roll2Seed accepts only an evenly mappable range. If the sequence lands in the leftover range, it recycles that entropy and asks for another physical roll.
+            </p>
+          </details>
+          <details>
+            <summary>How BIP39 words are made</summary>
+            <p>
+              The accepted entropy receives a short SHA-256 checksum, then the combined bits are split into 11-bit indexes for the embedded 2,048-word English BIP39 list. The checksum is error detection, not extra entropy.
+            </p>
+          </details>
+          <details>
+            <summary>What this tool cannot protect against</summary>
+            <p>
+              A compromised browser, extension, operating system, keyboard, screen recorder, app build, or physically biased die can still undermine the result. This creates a recovery phrase—not a wallet, account, address, or optional BIP39 passphrase.
+            </p>
+          </details>
+          <details>
+            <summary>Why there is no “randomness score”</summary>
+            <p>
+              Repeated faces and long runs are valid. A small sample cannot prove a die is fair, and selectively rejecting patterns would add human bias. Record every physical result exactly as rolled.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span class="bit-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <p>Source available · No runtime network · No analytics</p>
+      <span class="bit-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </footer>
+
+    <dialog class="confirm-dialog" id="clear-dialog" aria-labelledby="clear-dialog-title">
+      <h2 id="clear-dialog-title">Clear all recorded rolls?</h2>
+      <p id="clear-dialog-copy">This removes the active roll sequence and any derived phrase from the page.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="keep-rolls-button" type="button">Keep rolls</button>
+        <button class="button button-danger" id="confirm-clear-button" type="button">Clear rolls</button>
+      </div>
+    </dialog>
+
+    <dialog class="confirm-dialog review-dialog" id="review-dialog" aria-labelledby="review-dialog-title">
+      <h2 id="review-dialog-title">Review every recorded roll</h2>
+      <div class="review-secret-warning" role="alert">
+        <strong>The complete roll sequence is secret.</strong>
+        <span>It can recreate your recovery phrase. Do not screenshot, photograph, copy, or share it.</span>
+      </div>
+      <p>Select a numbered roll only when it does not match your separate paper tally. A correction discards the old phrase and recomputes from the corrected sequence.</p>
+      <label class="reveal-check review-reveal-check">
+        <input type="checkbox" id="review-reveal-check" />
+        <span>I am private, cameras, screenshots, photos, and screen sharing are off.</span>
+      </label>
+      <button class="button button-primary review-reveal-button" id="reveal-rolls-button" type="button" disabled>
+        Reveal complete roll tally
+      </button>
+      <div id="review-secret-content" hidden>
+        <div class="review-timer-row">
+          <div class="review-timer" id="review-hide-timer">Closes in 2:00</div>
+          <button class="timer-action" id="keep-review-visible-button" type="button">Keep review visible 2 min</button>
+        </div>
+        <ol class="review-roll-grid" id="review-roll-grid" aria-label="All recorded rolls"></ol>
+        <div class="review-edit-panel" id="review-edit-panel" hidden>
+          <strong id="review-edit-title">Correct selected roll</strong>
+          <div class="review-face-grid" role="group" aria-labelledby="review-edit-title">
+            <button type="button" data-edit-face="1">1</button>
+            <button type="button" data-edit-face="2">2</button>
+            <button type="button" data-edit-face="3">3</button>
+            <button type="button" data-edit-face="4">4</button>
+            <button type="button" data-edit-face="5">5</button>
+            <button type="button" data-edit-face="6">6</button>
+          </div>
+        </div>
+      </div>
+      <p class="dialog-caveat" id="review-status" role="status" aria-live="polite">Your paper tally is secret too. Destroy it after the recovery phrase is safely backed up.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="done-review-button" type="button">Done</button>
+      </div>
+    </dialog>
+
+    <dialog class="confirm-dialog" id="erase-dialog" aria-labelledby="erase-dialog-title">
+      <h2 id="erase-dialog-title">Erase this session now?</h2>
+      <p>Make sure the handwritten backup is complete. The active rolls and phrase cannot be recovered here afterward.</p>
+      <p class="dialog-caveat">Browser memory cannot be guaranteed to be forensically wiped.</p>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="keep-session-button" type="button">Keep session</button>
+        <button class="button button-danger" id="confirm-erase-button" type="button">Erase session</button>
+      </div>
+    </dialog>
+
+    <div class="print-block" aria-hidden="true">
+      Recovery phrases cannot be printed from Roll2Seed. Write the phrase by hand in a private setting.
+    </div>
+  </body>
+</html>

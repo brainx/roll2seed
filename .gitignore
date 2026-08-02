@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+
+.vr/
+
+# Local agent and planning artifacts
+.agents/
+.codex/
+.superpowers/
+.worktrees/
+docs/superpowers/
