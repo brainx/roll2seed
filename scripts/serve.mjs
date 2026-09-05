@@ -1,13 +1,20 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
+import { isIP } from "node:net";
 import { extname, resolve, sep } from "node:path";
+import { pipeline } from "node:stream/promises";
 
 const platformPort = process.env.PORT;
 // Many hosting platforms set PORT automatically. Binding a cleartext HTTP seed
 // generator to all interfaces must be a deliberate choice, never a side effect.
 const exposeToNetwork = process.env.ROLL2SEED_EXPOSE === "1";
 const host = process.env.HOST ?? (platformPort && exposeToNetwork ? "0.0.0.0" : "127.0.0.1");
+const isLoopbackHost =
+  host === "localhost" || host === "::1" || (isIP(host) === 4 && host.startsWith("127."));
+if (!isLoopbackHost && !exposeToNetwork) {
+  throw new Error("Non-loopback HOST requires ROLL2SEED_EXPOSE=1 and a trusted TLS-terminating proxy");
+}
 const configuredPort = Number(platformPort ?? process.env.ROLL2SEED_PORT ?? "4173");
 if (!Number.isInteger(configuredPort) || configuredPort < 1024 || configuredPort > 65535) {
   throw new Error("PORT or ROLL2SEED_PORT must be an integer from 1024 through 65535");
@@ -84,7 +91,7 @@ const server = createServer(async (request, response) => {
 
   let pathname;
   try {
-    pathname = decodeURIComponent(new URL(request.url ?? "/", `http://${host}`).pathname);
+    pathname = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
   } catch {
     sendText(response, 400, "Bad request");
     return;
@@ -113,15 +120,20 @@ const server = createServer(async (request, response) => {
       response.end();
       return;
     }
-    createReadStream(filePath).pipe(response);
+    await pipeline(createReadStream(filePath), response);
   } catch {
+    if (response.headersSent || response.destroyed) {
+      response.destroy();
+      return;
+    }
     sendText(response, 404, "Not found");
   }
 });
 
 server.listen(configuredPort, host, () => {
-  process.stdout.write(`Roll2Seed is available at http://${host}:${configuredPort}\n`);
-  if (host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
+  const urlHost = isIP(host) === 6 ? `[${host}]` : host;
+  process.stdout.write(`Roll2Seed is available at http://${urlHost}:${configuredPort}\n`);
+  if (!isLoopbackHost) {
     process.stderr.write(
       "WARNING: Roll2Seed is listening on a non-loopback interface over cleartext HTTP. " +
         "Only do this behind a trusted TLS-terminating proxy; otherwise a network attacker " +

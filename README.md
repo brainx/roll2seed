@@ -60,6 +60,11 @@ behind a trusted TLS-terminating proxy. A cleartext HTTP deployment lets a
 network attacker modify the delivered code and steal generated seeds; the
 server prints a warning whenever it binds to a non-loopback interface.
 
+`HOST` can select `localhost`, an IPv4 loopback address, or `::1` for local use.
+Other `HOST` values are rejected unless `ROLL2SEED_EXPOSE=1` is also set; this
+applies even when `HOST` is inherited from the environment. IPv6 loopback is
+available at `http://[::1]:4173` with the default port.
+
 For visual development only:
 
 ```sh
