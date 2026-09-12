@@ -964,7 +964,10 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const target = event.target;
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+  if (
+    (target instanceof HTMLInputElement && target.type !== "checkbox") ||
+    target instanceof HTMLTextAreaElement
+  ) {
     return;
   }
   if (elements.clearDialog.open || elements.reviewDialog.open || elements.eraseDialog.open) {
